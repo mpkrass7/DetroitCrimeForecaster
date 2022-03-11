@@ -41,8 +41,9 @@ def build_layout():
     container4 = st.container()
     return container0, container1, container2, stats_column, map_column, container3, container4
 
-@st.cache
-def pull_snowflake_tables():
+@st.cache(suppress_st_warning=True, allow_output_mutation=True)
+def pull_snowflake_tables(date):
+    today = date
 
     SNOW_DATABASE = "SANDBOX"
     SNOW_SCHEMA = "DETROIT"
@@ -119,7 +120,7 @@ def clean_data(scoring_data, predictions_data):
 def show_some_stats(actuals, preds, stats_box1, stats_box2):
     latest_call = actuals["Call Hour"].max()
     actuals_last_two_weeks = (
-        actuals.loc[lambda x: x["Call Hour"] > latest_call - dt.timedelta(days=14)]
+        actuals.loc[lambda x: x["Call Hour"] >= latest_call - dt.timedelta(days=14)]
         .assign(
             high_priority_incidents=lambda x: np.where(x["Priority"].isin([4, 5]), 1, 0)
         )
@@ -130,12 +131,12 @@ def show_some_stats(actuals, preds, stats_box1, stats_box2):
     stats_box1.metric(
         label="Incidents in Last Week",
         value="{:,}".format(actuals_last_week["Incidents"].sum()),
-        delta=f"{round(actuals_last_week['Incidents'].sum()/actuals_prior_week['Incidents'].sum() * 100 - 1, 1)}%",
+        delta=f"{round((actuals_last_week['Incidents'].sum()/actuals_prior_week['Incidents'].sum() - 1) * 100 , 1)}%",
     )
     stats_box2.metric(
         label="High Priority Incidents in Last Week",
         value="{:,}".format(actuals_last_week["high_priority_incidents"].sum()),
-        delta=f"{round(actuals_last_week['high_priority_incidents'].sum()/actuals_prior_week['high_priority_incidents'].sum(),3) * 100 - 1}%",
+        delta=f"{round((actuals_last_week['high_priority_incidents'].sum()/actuals_prior_week['high_priority_incidents'].sum() - 1) * 100, 1)}%",
     )
 
     return
@@ -230,6 +231,7 @@ def plot_lines(
     fig = fig.update_layout(
         plot_bgcolor="white",
         hovermode="x unified",
+        xaxis=dict(rangeslider=dict(visible=True), type="date"),
         hoverlabel=dict(
             bgcolor="white", font_size=16, font_family="Rockwell", namelength=-1
         ),

@@ -1,3 +1,4 @@
+import datetime as dt
 import os
 
 import geopandas as gpd
@@ -27,7 +28,8 @@ plot_config = {
 
 
 j_df = gpd.read_file(GEO_DATA_LOC).to_crs({"init": "epsg:4326"})
-df_scoring_data, df_predictions_data = helpers.pull_snowflake_tables()
+
+df_scoring_data, df_predictions_data = helpers.pull_snowflake_tables(dt.date.today())
 
 df_scoring_data, df_predictions_data = helpers.clean_data(
     df_scoring_data, df_predictions_data
