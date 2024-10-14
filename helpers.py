@@ -21,34 +21,43 @@ try:
     # Running locally using streamlit run
     logger.info("Running helpers locally")
     import yaml
+
     with open("keys.yaml", "r") as f:
         YAML_DATA = yaml.safe_load(f)
         SNOW_USERNAME = YAML_DATA["SNOW_USERNAME"]
         SNOW_PASSWORD = YAML_DATA["SNOW_PASSWORD"]
-    
+
 except:
     logger.info("Running published version")
-    SNOW_USERNAME = st.secrets['SNOW_USERNAME']
-    SNOW_PASSWORD = st.secrets['SNOW_PASSWORD']
-    
+    SNOW_USERNAME = st.secrets["SNOW_USERNAME"]
+    SNOW_PASSWORD = st.secrets["SNOW_PASSWORD"]
+
 
 def build_layout():
     container0 = st.container()
     container1 = st.container()
     container2 = st.container()
-    stats_column, map_column = container2.columns([1,4])
+    stats_column, map_column = container2.columns([1, 4])
     container3 = st.container()
     container4 = st.container()
-    return container0, container1, container2, stats_column, map_column, container3, container4
+    return (
+        container0,
+        container1,
+        container2,
+        stats_column,
+        map_column,
+        container3,
+        container4,
+    )
 
-@st.cache(suppress_st_warning=True, allow_output_mutation=True)
+
+@st.cache_data()
 def pull_snowflake_tables(date):
-    today = date
 
     SNOW_DATABASE = "SANDBOX"
     SNOW_SCHEMA = "DETROIT"
     SNOW_TABLE_NAME = "DETROIT_911_CALLS_LONG"
-    SNOW_PREDICTION_TABLE_NAME = "DETROIT_911_CALLS_LONG_PREDICTIONS"
+    SNOW_PREDICTION_TABLE_NAME = "DETROIT_911_CALLS_RENEW_LONG_PREDICTIONS"
     SNOW_WAREHOUSE = "DEMO_WH"
     URL = "datarobot_partner"
 
@@ -149,10 +158,10 @@ def aggregate_plot_data(
     time_aggregation = "6-hours" if time_aggregation == 2 else time_aggregation
     agg_columns = ["Call Hour"] if aggregate_districts else ["Call Hour", "District"]
     hour_mapping = {
-        "12-hours": "12H",
-        "6-hours": "6H",
-        "3-hours": "3H",
-        "hourly": "H",
+        "12-hours": "12h",
+        "6-hours": "6h",
+        "3-hours": "3h",
+        "hourly": "h",
     }
     format_scoring_data, format_prediction_data = (
         df_scoring_data.copy(),
@@ -214,11 +223,10 @@ def plot_lines(
             go.Scatter(
                 x=pred_temp["Call Hour"],
                 y=pred_temp["Incidents"],
-                name=f"Forecast\n{i}",
+                name=f"forecast {i}",
                 opacity=0.75,
                 legendgroup=i,
                 line=dict(color=DISTRICT_COLOR_MAPPING[i], width=3, dash="dashdot"),
-                # mode="lines+markers",
                 line_shape="spline",
             )
         )
@@ -231,7 +239,6 @@ def plot_lines(
     fig = fig.update_layout(
         plot_bgcolor="white",
         hovermode="x unified",
-        xaxis=dict(rangeslider=dict(visible=True), type="date"),
         hoverlabel=dict(
             bgcolor="white", font_size=16, font_family="Rockwell", namelength=-1
         ),
@@ -245,7 +252,7 @@ def plot_lines(
     fig = fig.update_yaxes(title_font={"size": 20})
     fig = fig.update_xaxes(title_text="Call Hour", title_font={"size": 20})
     fig["layout"]["yaxis"]["fixedrange"] = True
-    
+
     return fig
 
 
@@ -303,7 +310,9 @@ def plot_map(actuals, preds, coordinates_dataframe):
     return fig
 
 
-def format_data_for_area_chart(df,):
+def format_data_for_area_chart(
+    df,
+):
     melt_df = df.assign(
         Priority=lambda x: "Priority " + x.Priority.astype(str),
         series_id=lambda x: x["Series Id"],
@@ -342,10 +351,9 @@ def plot_area_chart(melted_df, melted_predict_df):
 
     for count, i in enumerate(melted_df.PRIORITY.unique().tolist()):
         mdf = melted_df.loc[lambda x: x.PRIORITY == i]
-        mpdf = (melted_predict_df
-            .loc[lambda x: x.PRIORITY == i]
-            .loc[lambda x: x.CALL_HOUR >= max(mdf.CALL_HOUR)]
-        )
+        mpdf = melted_predict_df.loc[lambda x: x.PRIORITY == i].loc[
+            lambda x: x.CALL_HOUR >= max(mdf.CALL_HOUR)
+        ]
         fig = fig.add_trace(
             go.Scatter(
                 x=mdf["CALL_HOUR"],
@@ -364,7 +372,7 @@ def plot_area_chart(melted_df, melted_predict_df):
                 x=mpdf["CALL_HOUR"],
                 y=mpdf["pct_total"],
                 name=f"Forecast: {i}",
-                opacity=.5,
+                opacity=0.5,
                 line=dict(width=0.5, color=priority_colors[count]),
                 stackgroup="two",
                 legendgroup=i,
@@ -372,7 +380,6 @@ def plot_area_chart(melted_df, melted_predict_df):
             row=1,
             col=1,
         )
-        
 
         fig = fig.add_trace(
             go.Scatter(
@@ -391,7 +398,7 @@ def plot_area_chart(melted_df, melted_predict_df):
                 x=mpdf["CALL_HOUR"],
                 y=mpdf["INCIDENTS"],
                 name=f"Forecast: {i}",
-                opacity=.5,
+                opacity=0.5,
                 line=dict(width=0.5, color=priority_colors[count]),
                 stackgroup="two",
                 legendgroup=i,
@@ -442,4 +449,3 @@ def plot_area_chart(melted_df, melted_predict_df):
         "text": "Number of Incidents",
     }
     return fig
-

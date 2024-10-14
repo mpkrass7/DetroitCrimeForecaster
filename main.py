@@ -12,10 +12,10 @@ GEO_DATA_LOC = "data/City_Council_Districts"
 GEO_DATA_LOC = os.path.join(os.path.dirname(__file__), GEO_DATA_LOC)
 
 PAGE_CONFIG = {
-        "page_title": "Detroit 911 Calls",
-        "layout": "wide",
-        "page_icon": "oncoming_police_car",
-    }
+    "page_title": "Detroit 911 Calls",
+    "layout": "wide",
+    "page_icon": "oncoming_police_car",
+}
 
 st.set_page_config(**PAGE_CONFIG)
 
@@ -24,7 +24,7 @@ st.set_page_config(**PAGE_CONFIG)
 
 plot_config = {
     "displayModeBar": False,
-    }
+}
 
 
 j_df = gpd.read_file(GEO_DATA_LOC).to_crs({"init": "epsg:4326"})
@@ -142,7 +142,7 @@ if pressed:
     filter_predictions_data = df_predictions_data.loc[
         lambda x: (x.District.isin(districts)) & (x.Priority.isin(priorities))
     ]
-    
+
     line_chart.plotly_chart(
         helpers.plot_lines(
             df_scoring_data=filter_scoring_data,
@@ -150,7 +150,7 @@ if pressed:
             time_aggregation=time_aggregation,
             aggregate_districts=aggregate_districts,
         ),
-        config= plot_config,
+        config=plot_config,
         use_container_width=True,
     )
     helpers.show_some_stats(
@@ -158,13 +158,13 @@ if pressed:
     )
     map_chart.plotly_chart(
         helpers.plot_map(filter_scoring_data, filter_predictions_data, j_df),
-        config = plot_config,
+        config=plot_config,
         use_container_width=True,
     )
     area_charts.plotly_chart(
         helpers.plot_area_chart(
             helpers.format_data_for_area_chart(filter_scoring_data),
-            helpers.format_data_for_area_chart(filter_predictions_data)
+            helpers.format_data_for_area_chart(filter_predictions_data),
         ),
         config=plot_config,
         use_container_width=True,
@@ -172,5 +172,3 @@ if pressed:
 if clear_cache:
     st.legacy_caching.clear_cache()
     message_bar.info("Cache cleared.")
-
-
