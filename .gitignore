@@ -148,3 +148,5 @@ chart/charts/ai-apps-base-chart-0.2.0.tgz
 
 # Secrets
 keys.yaml
+.env
+.streamlit/secrets.toml

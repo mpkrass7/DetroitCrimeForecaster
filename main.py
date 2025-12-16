@@ -2,7 +2,6 @@ import datetime as dt
 import os
 
 import geopandas as gpd
-from logzero import logger
 import streamlit as st
 
 import helpers
@@ -14,7 +13,7 @@ GEO_DATA_LOC = os.path.join(os.path.dirname(__file__), GEO_DATA_LOC)
 PAGE_CONFIG = {
     "page_title": "Detroit 911 Calls",
     "layout": "wide",
-    "page_icon": "oncoming_police_car",
+    "page_icon": "🚔",
 }
 
 st.set_page_config(**PAGE_CONFIG)
@@ -27,9 +26,9 @@ plot_config = {
 }
 
 
-j_df = gpd.read_file(GEO_DATA_LOC).to_crs({"init": "epsg:4326"})
+j_df = gpd.read_file(GEO_DATA_LOC).to_crs("EPSG:4326")
 
-df_scoring_data, df_predictions_data = helpers.pull_snowflake_tables(dt.date.today())
+df_scoring_data, df_predictions_data = helpers.pull_tables()
 
 df_scoring_data, df_predictions_data = helpers.clean_data(
     df_scoring_data, df_predictions_data
@@ -63,7 +62,6 @@ default_predictions_data = df_predictions_data.loc[
 ]
 
 with st.sidebar.form(key="my_form"):
-
     districts = st.multiselect(
         "Select District(s) of Interest",
         district_options,
@@ -108,19 +106,19 @@ if pressed == 0:
         helpers.plot_lines(
             df_scoring_data=default_scoring_data,
             df_predictions_data=default_predictions_data,
-            time_aggregation=default_time_aggregation_index,
+            time_aggregation=time_aggregation,
             aggregate_districts=False,
         ),
         config=plot_config,
-        use_container_width=True,
+        width='stretch',
     )
     helpers.show_some_stats(
-        default_scoring_data, default_predictions_data, stats_chart1, stats_chart2
+        default_scoring_data, stats_chart1, stats_chart2
     )
     map_chart.plotly_chart(
-        helpers.plot_map(default_scoring_data, default_predictions_data, j_df),
+        helpers.plot_map(default_scoring_data, j_df),
         config=plot_config,
-        use_container_width=True,
+        width='stretch',
     )
 
     area_charts.plotly_chart(
@@ -129,12 +127,11 @@ if pressed == 0:
             helpers.format_data_for_area_chart(default_predictions_data),
         ),
         config=plot_config,
-        use_container_width=True,
+        width='stretch',
     )
 
 
 if pressed:
-
     filter_scoring_data = df_scoring_data.loc[
         lambda x: (x.District.isin(districts))
         & (x.Priority.astype(int).isin(priorities))
@@ -151,15 +148,15 @@ if pressed:
             aggregate_districts=aggregate_districts,
         ),
         config=plot_config,
-        use_container_width=True,
+        width='stretch',
     )
     helpers.show_some_stats(
-        filter_scoring_data, filter_predictions_data, stats_chart1, stats_chart2
+        filter_scoring_data, stats_chart1, stats_chart2
     )
     map_chart.plotly_chart(
-        helpers.plot_map(filter_scoring_data, filter_predictions_data, j_df),
+        helpers.plot_map(filter_scoring_data, j_df),
         config=plot_config,
-        use_container_width=True,
+        width='stretch',
     )
     area_charts.plotly_chart(
         helpers.plot_area_chart(
@@ -167,8 +164,8 @@ if pressed:
             helpers.format_data_for_area_chart(filter_predictions_data),
         ),
         config=plot_config,
-        use_container_width=True,
+        width='stretch',
     )
 if clear_cache:
-    st.legacy_caching.clear_cache()
+    st.cache_data.clear()
     message_bar.info("Cache cleared.")

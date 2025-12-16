@@ -1,36 +1,46 @@
 import datetime as dt
 import json
-
-# import geopandas as gpd
-from logzero import logger
+import os
 
 import numpy as np
+import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
-import snowflake
-import snowflake.connector
 import streamlit as st
+from streamlit.delta_generator import DeltaGenerator
+from databricks import sql
+from databricks.sdk import WorkspaceClient
+from databricks.sdk.core import Config, oauth_service_principal
+from dotenv import load_dotenv
+from logzero import logger
+from plotly.subplots import make_subplots
+
+load_dotenv()
+
+try:
+    # Running locally using streamlit run
+    logger.info("Running helpers locally")
+    st.session_state.DATABRICKS_SERVER_HOSTNAME = os.getenv("DATABRICKS_SERVER_HOSTNAME")
+    st.session_state.DATABRICKS_CLIENT_ID = os.getenv("DATABRICKS_CLIENT_ID")
+    st.session_state.DATABRICKS_CLIENT_SECRET = os.getenv("DATABRICKS_CLIENT_SECRET")
+    st.session_state.DATABRICKS_HTTP_PATH = os.getenv("DATABRICKS_HTTP_PATH")
+
+except:
+    st.session_state.DATABRICKS_SERVER_HOSTNAME = st.secrets.get("DATABRICKS_SERVER_HOSTNAME")
+    st.session_state.DATABRICKS_CLIENT_ID = st.secrets.get("DATABRICKS_CLIENT_ID")
+    st.session_state.DATABRICKS_CLIENT_SECRET = st.secrets.get("DATABRICKS_CLIENT_SECRET")
+    st.session_state.DATABRICKS_HTTP_PATH = st.secrets.get("DATABRICKS_HTTP_PATH")
+
+w = WorkspaceClient(
+    host=st.session_state.DATABRICKS_SERVER_HOSTNAME,
+    client_id=st.session_state.DATABRICKS_CLIENT_ID,
+    client_secret=st.session_state.DATABRICKS_CLIENT_SECRET
+    )
 
 plotly_default_colors = px.colors.qualitative.Plotly[:7]
 districts = [f"District {i}" for i in range(1, 8)]
 DISTRICT_COLOR_MAPPING = dict(zip(districts, plotly_default_colors))
 DISTRICT_COLOR_MAPPING["Aggregated Districts"] = plotly_default_colors[0]
-
-try:
-    # Running locally using streamlit run
-    logger.info("Running helpers locally")
-    import yaml
-
-    with open("keys.yaml", "r") as f:
-        YAML_DATA = yaml.safe_load(f)
-        SNOW_USERNAME = YAML_DATA["SNOW_USERNAME"]
-        SNOW_PASSWORD = YAML_DATA["SNOW_PASSWORD"]
-
-except:
-    logger.info("Running published version")
-    SNOW_USERNAME = st.secrets["SNOW_USERNAME"]
-    SNOW_PASSWORD = st.secrets["SNOW_PASSWORD"]
 
 
 def build_layout():
@@ -51,82 +61,96 @@ def build_layout():
     )
 
 
+def credential_provider():
+  config = Config(
+    host          = f"https://{st.session_state.DATABRICKS_SERVER_HOSTNAME}",
+    client_id     = st.session_state.DATABRICKS_CLIENT_ID,
+    client_secret = st.session_state.DATABRICKS_CLIENT_SECRET)
+  return oauth_service_principal(config)
+
+
 @st.cache_data()
-def pull_snowflake_tables(date):
+def pull_tables():
+    CATALOG, SCHEMA,  = "mk_fiddles", "detroit_911"
+    DATA_TABLE = "incidents_forecasting_gold"
+    PREDICTION_TABLE = "basic_prophet_forecasts"
 
-    SNOW_DATABASE = "SANDBOX"
-    SNOW_SCHEMA = "DETROIT"
-    SNOW_TABLE_NAME = "DETROIT_911_CALLS_LONG"
-    SNOW_PREDICTION_TABLE_NAME = "DETROIT_911_CALLS_RENEW_LONG_PREDICTIONS"
-    SNOW_WAREHOUSE = "DEMO_WH"
-    URL = "datarobot_partner"
 
-    logger.info("Connecting to Snowflake Tables...")
-    # Create the connection to the Snowflake database.
-    cnx = snowflake.connector.connect(
-        user=SNOW_USERNAME,
-        password=SNOW_PASSWORD,
-        account=URL,
-        warehouse=SNOW_WAREHOUSE,
-        database=SNOW_DATABASE,
-        schema=SNOW_SCHEMA,
-    )
+    logger.info("Connecting to Databricks Tables...")
+    # Create the connection to the Databricks database.
+    with sql.connect(
+        server_hostname      = st.session_state.DATABRICKS_SERVER_HOSTNAME,
+        http_path            = st.session_state.DATABRICKS_HTTP_PATH,
+        credentials_provider = credential_provider) as cnx:
+ 
+        # Create a Cursor
+        cur = cnx.cursor()
+        logger.info("Pulling 911 calls over past 2 months...")
 
-    # # Create a Cursor
-    cur = cnx.cursor()
-    logger.info("Pulling 911 calls over past 2 months...")
+        # Count out of date records.
+        query = f"""
+            SELECT *  
+            FROM {CATALOG}.{SCHEMA}.{DATA_TABLE} as a 
+            WHERE a.called_at_hour >= (
+                SELECT ADD_MONTHS(MAX(b.called_at_hour),-2) FROM {CATALOG}.{SCHEMA}.{DATA_TABLE} as b
+                )
+                """
+        cur.execute(query)
+        scoring_data = cur.fetchall()
+        columns = [desc[0] for desc in cur.description]
+        df_scoring_data = pd.DataFrame(scoring_data, columns=columns)
+        latest_call = df_scoring_data["called_at_hour"].max()
+        logger.info("Pulling Predictions...")
 
-    # Count out of date records.
-    sql = f"""
-        SELECT *  
-        FROM {SNOW_DATABASE}.{SNOW_SCHEMA}.{SNOW_TABLE_NAME} as a 
-        WHERE a."CALL_HOUR" >= (
-            SELECT ADD_MONTHS(MAX(b."CALL_HOUR"),-2) FROM {SNOW_DATABASE}.{SNOW_SCHEMA}.{SNOW_TABLE_NAME} as b
-            )
+        query = f"""
+            SELECT * FROM {CATALOG}.{SCHEMA}.{PREDICTION_TABLE}
+            WHERE called_at_hour > '{latest_call}'
             """
-    cur.execute(sql)
-    df_scoring_data = cur.fetch_pandas_all()
 
-    logger.info("Pulling Predictions...")
+        cur.execute(query)
 
-    sql = f"""
-        SELECT * FROM {SNOW_DATABASE}.{SNOW_SCHEMA}.{SNOW_PREDICTION_TABLE_NAME} 
-        """
+        predictions_data = cur.fetchall()
+        columns = [desc[0] for desc in cur.description]
+        df_predictions_data = pd.DataFrame(predictions_data, columns=columns)
 
-    cur.execute(sql)
+        # logger.info(df_scoring_data.head())
 
-    df_predictions_data = cur.fetch_pandas_all()
-
-    # logger.info(df_scoring_data.head())
-
-    cnx.close()
-    return (
-        df_scoring_data.assign(PRIORITY=lambda x: x.PRIORITY.astype(int)),
-        df_predictions_data,
-    )
+        cnx.close()
+        return (
+            df_scoring_data,
+            df_predictions_data,
+        )
 
 
-def clean_data(scoring_data, predictions_data):
+def clean_data(scoring_data: pd.DataFrame, predictions_data: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Rename columns and format data types for scoring and prediction dataframes.
+    """
+
     df_scoring_data = scoring_data.copy()
     df_predictions_data = predictions_data.copy()
 
-    df_scoring_data.columns = [
-        i.replace("_", " ").title() for i in df_scoring_data.columns
-    ]
-    df_predictions_data.columns = [
-        i.replace("_", " ").title() for i in df_predictions_data.columns
-    ]
-
-    df_predictions_data["District"] = (
-        "District " + df_predictions_data["Series Id"].str[1]
-    )
-    df_predictions_data["Priority"] = (
-        df_predictions_data["Series Id"].str[-1].astype(int)
-    )
+    for df in [df_scoring_data, df_predictions_data]:
+        df['council_district'] = "District " + df["council_district"].str[-1]
+        df['priority'] = df["priority"].str[-1].astype(int)
+        df.rename(
+            columns={
+                "called_at_hour": "Call Hour",
+                "call_count": "Incidents",
+                "call_count_forecast": "Incidents",
+                "council_district": "District",
+                "priority": "Priority",
+            },
+            inplace=True,
+        )
+    
     return df_scoring_data, df_predictions_data
 
 
-def show_some_stats(actuals, preds, stats_box1, stats_box2):
+def show_some_stats(actuals: pd.DataFrame, stats_box1: DeltaGenerator, stats_box2: DeltaGenerator):
+    """
+    Show some key statistics about the latest data.
+    """
     latest_call = actuals["Call Hour"].max()
     actuals_last_two_weeks = (
         actuals.loc[lambda x: x["Call Hour"] >= latest_call - dt.timedelta(days=14)]
@@ -152,7 +176,7 @@ def show_some_stats(actuals, preds, stats_box1, stats_box2):
 
 
 def aggregate_plot_data(
-    df_scoring_data, df_predictions_data, time_aggregation, aggregate_districts=True
+    df_scoring_data: pd.DataFrame, df_predictions_data: pd.DataFrame, time_aggregation: str, aggregate_districts=True
 ):
 
     time_aggregation = "6-hours" if time_aggregation == 2 else time_aggregation
@@ -168,10 +192,10 @@ def aggregate_plot_data(
         df_predictions_data.copy(),
     )
     format_scoring_data["Call Hour"] = format_scoring_data["Call Hour"].dt.round(
-        hour_mapping[time_aggregation]
+        hour_mapping[time_aggregation], ambiguous=False
     )
     format_prediction_data["Call Hour"] = format_prediction_data["Call Hour"].dt.round(
-        hour_mapping[time_aggregation]
+        hour_mapping[time_aggregation], ambiguous=False
     )
 
     format_scoring_data = (
@@ -193,10 +217,10 @@ def aggregate_plot_data(
 
 
 def plot_lines(
-    df_scoring_data,
-    df_predictions_data,
-    time_aggregation="hourly",
-    aggregate_districts=False,
+    df_scoring_data: pd.DataFrame,
+    df_predictions_data: pd.DataFrame,
+    time_aggregation:str="hourly",
+    aggregate_districts:bool=False,
 ):
 
     scoring_data_format, prediction_data_format = aggregate_plot_data(
@@ -256,7 +280,7 @@ def plot_lines(
     return fig
 
 
-def plot_map(actuals, preds, coordinates_dataframe):
+def plot_map(actuals: pd.DataFrame, coordinates_dataframe: pd.DataFrame) -> go.Figure:
 
     latest_call = actuals["Call Hour"].max()
     actuals_last_week = (
@@ -311,13 +335,11 @@ def plot_map(actuals, preds, coordinates_dataframe):
 
 
 def format_data_for_area_chart(
-    df,
-):
+    df: pd.DataFrame,
+) -> pd.DataFrame:
     melt_df = df.assign(
         Priority=lambda x: "Priority " + x.Priority.astype(str),
-        series_id=lambda x: x["Series Id"],
         call_hour=lambda x: x["Call Hour"].astype(str),
-        unique_key=lambda x: x.series_id + x.call_hour,
     )
     melt_df.columns = [i.upper() for i in melt_df.columns]
     mdf_total = (
@@ -334,7 +356,7 @@ def format_data_for_area_chart(
     return mdf_total
 
 
-def plot_area_chart(melted_df, melted_predict_df):
+def plot_area_chart(melted_df: pd.DataFrame, melted_predict_df: pd.DataFrame) -> go.Figure:
 
     fig = make_subplots(
         rows=2,

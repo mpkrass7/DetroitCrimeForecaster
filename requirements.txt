@@ -1,4 +1,5 @@
-datarobot
+databricks-sdk
+databricks-sql-connector
 geopandas
 boto3
 logzero
@@ -7,6 +8,5 @@ pandas
 paramiko
 plotly
 pyarrow
-PyYAML
-snowflake-connector-python
+python-dotenv
 streamlit
