@@ -17,22 +17,15 @@ from plotly.subplots import make_subplots
 
 load_dotenv()
 
-try:
-    # Running locally using streamlit run
-    logger.info("Running helpers locally")
-    st.session_state.DATABRICKS_SERVER_HOSTNAME = os.getenv("DATABRICKS_SERVER_HOSTNAME")
-    st.session_state.DATABRICKS_CLIENT_ID = os.getenv("DATABRICKS_CLIENT_ID")
-    st.session_state.DATABRICKS_CLIENT_SECRET = os.getenv("DATABRICKS_CLIENT_SECRET")
-    st.session_state.DATABRICKS_HTTP_PATH = os.getenv("DATABRICKS_HTTP_PATH")
-
-except:
-    st.session_state.DATABRICKS_SERVER_HOSTNAME = st.secrets.get("DATABRICKS_SERVER_HOSTNAME")
-    st.session_state.DATABRICKS_CLIENT_ID = st.secrets.get("DATABRICKS_CLIENT_ID")
-    st.session_state.DATABRICKS_CLIENT_SECRET = st.secrets.get("DATABRICKS_CLIENT_SECRET")
-    st.session_state.DATABRICKS_HTTP_PATH = st.secrets.get("DATABRICKS_HTTP_PATH")
+# Running locally using streamlit run
+logger.info("Running helpers locally")
+st.session_state.DATABRICKS_HOST = os.getenv("DATABRICKS_HOST")
+st.session_state.DATABRICKS_CLIENT_ID = os.getenv("DATABRICKS_CLIENT_ID")
+st.session_state.DATABRICKS_CLIENT_SECRET = os.getenv("DATABRICKS_CLIENT_SECRET")
+st.session_state.DATABRICKS_HTTP_PATH = os.getenv("DATABRICKS_HTTP_PATH")
 
 w = WorkspaceClient(
-    host=st.session_state.DATABRICKS_SERVER_HOSTNAME,
+    host=st.session_state.DATABRICKS_HOST,
     client_id=st.session_state.DATABRICKS_CLIENT_ID,
     client_secret=st.session_state.DATABRICKS_CLIENT_SECRET
     )
@@ -63,7 +56,7 @@ def build_layout():
 
 def credential_provider():
   config = Config(
-    host          = f"https://{st.session_state.DATABRICKS_SERVER_HOSTNAME}",
+    host          = f"https://{st.session_state.DATABRICKS_HOST}",
     client_id     = st.session_state.DATABRICKS_CLIENT_ID,
     client_secret = st.session_state.DATABRICKS_CLIENT_SECRET)
   return oauth_service_principal(config)
@@ -79,7 +72,7 @@ def pull_tables():
     logger.info("Connecting to Databricks Tables...")
     # Create the connection to the Databricks database.
     with sql.connect(
-        server_hostname      = st.session_state.DATABRICKS_SERVER_HOSTNAME,
+        server_hostname      = st.session_state.DATABRICKS_HOST,
         http_path            = st.session_state.DATABRICKS_HTTP_PATH,
         credentials_provider = credential_provider) as cnx:
  

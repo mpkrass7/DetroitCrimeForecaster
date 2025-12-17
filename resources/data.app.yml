@@ -1,6 +1,6 @@
 resources:
   apps:
-    data_app:
+    detroit_app:
       name: "detroit-911-call-forecaster"
       source_code_path: ../app
       description: "A streamlit app that shows 911 call forecasts in Detroit"
@@ -10,4 +10,3 @@ resources:
           sql_warehouse:
             id: "148ccb90800933a1"
             permission: "CAN_USE"
-

@@ -1,7 +1,7 @@
 # This is a Databricks asset bundle definition for detroit_forecaster.
 # See https://docs.databricks.com/dev-tools/bundles/index.html for documentation.
 bundle:
-  name: detroitcrimeforecaster
+  name: detroit_forecaster
 
 include:
   - resources/*.yml
