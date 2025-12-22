@@ -2,7 +2,7 @@
 CREATE OR REPLACE MATERIALIZED VIEW basic_prophet_forecasts
     with horizon as (
         SELECT 
-            date_add(max(called_at_hour), 3) as forecast_horizon
+            date_add(max(called_at_hour), 7) as forecast_horizon
         FROM incidents_forecasting_gold
     )
     SELECT

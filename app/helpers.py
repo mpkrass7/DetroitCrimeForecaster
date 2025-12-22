@@ -22,7 +22,8 @@ logger.info("Running helpers locally")
 st.session_state.DATABRICKS_HOST = os.getenv("DATABRICKS_HOST")
 st.session_state.DATABRICKS_CLIENT_ID = os.getenv("DATABRICKS_CLIENT_ID")
 st.session_state.DATABRICKS_CLIENT_SECRET = os.getenv("DATABRICKS_CLIENT_SECRET")
-st.session_state.DATABRICKS_HTTP_PATH = os.getenv("DATABRICKS_HTTP_PATH")
+DATABRICKS_WAREHOUSE_ID = os.getenv("DATABRICKS_WAREHOUSE_ID")
+st.session_state.DATABRICKS_HTTP_PATH = f"/sql/1.0/warehouses/{DATABRICKS_WAREHOUSE_ID}"
 
 w = WorkspaceClient(
     host=st.session_state.DATABRICKS_HOST,

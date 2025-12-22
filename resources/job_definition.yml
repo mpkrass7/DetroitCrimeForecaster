@@ -4,12 +4,12 @@ resources:
       name: Detroit-911-Refresh
       schedule: 
         timezone_id: America/New_York
-        quartz_cron_expression: 0 9 * * ? *
+        quartz_cron_expression: 0 0 9 * * ?
         pause_status: UNPAUSED
       tasks:
         - task_key: Pull_Data
           notebook_task:
-            notebook_path: /Workspace/Users/marshall.krassenstein@databricks.com/DetroitCrimeForecaster/pipeline/Pull
+            notebook_path: /Workspace/Users/${workspace.current_user.userName}/DetroitCrimeForecaster/pipeline/Pull
               data
             source: WORKSPACE
         - task_key: engineer_and_forecast

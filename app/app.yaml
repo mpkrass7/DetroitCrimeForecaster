@@ -7,5 +7,3 @@ env:
     valueFrom: "sql-warehouse"
   - name: STREAMLIT_BROWSER_GATHER_USAGE_STATS
     value: "false"
-  - name: DATABRICKS_HTTP_PATH
-    value: /sql/1.0/warehouses/148ccb90800933a1
