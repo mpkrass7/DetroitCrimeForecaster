@@ -10,3 +10,8 @@ resources:
           sql_warehouse:
             id: "0664d9a09afd7fd1"
             permission: "CAN_USE"
+        - name: "refresh-job"
+          description: "Detroit 911 Refresh Job"
+          job:
+            id: ${resources.jobs.Detroit_911_Refresh.id}
+            permission: "CAN_MANAGE_RUN"
