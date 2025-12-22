@@ -1,0 +1,14 @@
+resources:
+  pipelines:
+    pipeline_detroit_911_call_dataprep:
+      name: Detroit 911 Call Dataprep
+      libraries:
+        - glob:
+            include: /Workspace/Users/marshall.krassenstein@databricks.com/DetroitCrimeForecaster/pipeline/transformations/**
+      schema: detroit_911
+      photon: true
+      catalog: mk_fiddles
+      serverless: true
+      tags:
+        project: detroit-911
+      root_path: /Workspace/Users/marshall.krassenstein@databricks.com/DetroitCrimeForecaster/pipeline

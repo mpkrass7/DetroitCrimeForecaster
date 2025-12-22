@@ -8,5 +8,5 @@ resources:
         - name: "sql-warehouse"
           description: "A SQL warehouse for app to pull data from"
           sql_warehouse:
-            id: "148ccb90800933a1"
+            id: "0664d9a09afd7fd1"
             permission: "CAN_USE"
