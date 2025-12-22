@@ -1,0 +1,29 @@
+resources:
+  jobs:
+    Detroit_911_Refresh:
+      name: Detroit-911-Refresh
+      schedule: 
+        timezone_id: America/New_York
+        quartz_cron_expression: 0 0 9 * * ?
+        pause_status: UNPAUSED
+      tasks:
+        - task_key: Pull_Data
+          notebook_task:
+            notebook_path: /Workspace/Users/${workspace.current_user.userName}/DetroitCrimeForecaster/pipeline/Pull
+              data
+            source: WORKSPACE
+        - task_key: engineer_and_forecast
+          depends_on:
+            - task_key: Pull_Data
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.pipeline_detroit_911_call_dataprep.id}
+            full_refresh: false
+          max_retries: 2
+          min_retry_interval_millis: 900000
+          retry_on_timeout: true
+      tags:
+        project: detroit-911
+      queue:
+        enabled: true
+      performance_target: PERFORMANCE_OPTIMIZED
+

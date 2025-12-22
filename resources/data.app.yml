@@ -1,0 +1,17 @@
+resources:
+  apps:
+    detroit_app:
+      name: "detroit-911-call-forecaster"
+      source_code_path: ../app
+      description: "A streamlit app that shows 911 call forecasts in Detroit"
+      resources:
+        - name: "sql-warehouse"
+          description: "A SQL warehouse for app to pull data from"
+          sql_warehouse:
+            id: "0664d9a09afd7fd1"
+            permission: "CAN_USE"
+        - name: "refresh-job"
+          description: "Detroit 911 Refresh Job"
+          job:
+            id: ${resources.jobs.Detroit_911_Refresh.id}
+            permission: "CAN_MANAGE_RUN"

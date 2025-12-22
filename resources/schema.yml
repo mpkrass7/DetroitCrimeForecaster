@@ -1,0 +1,9 @@
+resources:
+  schemas:
+    detroit_schema:
+      catalog_name: mk_fiddles
+      name: detroit_911
+      grants: 
+        - principal: '${resources.apps.detroit_app.service_principal_client_id}'
+          privileges: 
+            - SELECT

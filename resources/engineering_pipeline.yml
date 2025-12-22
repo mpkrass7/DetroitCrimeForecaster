@@ -1,0 +1,14 @@
+resources:
+  pipelines:
+    pipeline_detroit_911_call_dataprep:
+      name: Detroit 911 Call Dataprep
+      libraries:
+        - glob:
+            include: /Workspace/Users/${workspace.current_user.userName}/DetroitCrimeForecaster/pipeline/transformations/**
+      schema: ${resources.schemas.detroit_schema.name}
+      photon: true
+      catalog: ${resources.schemas.detroit_schema.catalog_name}
+      serverless: true
+      tags:
+        project: detroit-911
+      root_path: /Workspace/Users/${workspace.current_user.userName}/DetroitCrimeForecaster/pipeline
