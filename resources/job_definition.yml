@@ -12,6 +12,9 @@ resources:
             notebook_path: /Workspace/Users/${workspace.current_user.userName}/DetroitCrimeForecaster/pipeline/Pull
               data
             source: WORKSPACE
+            base_parameters:
+              catalog: ${resources.schemas.detroit_schema.catalog_name}
+              schema: ${resources.schemas.detroit_schema.name}
         - task_key: engineer_and_forecast
           depends_on:
             - task_key: Pull_Data
