@@ -65,7 +65,7 @@ def credential_provider():
 
 @st.cache_data()
 def pull_tables():
-    CATALOG, SCHEMA,  = "mk_fiddles", "detroit_911"
+    CATALOG, SCHEMA,  = "mk_fiddles", "dev_mpkrass_detroit_911"
     DATA_TABLE = "incidents_forecasting_gold"
     PREDICTION_TABLE = "basic_prophet_forecasts"
 
