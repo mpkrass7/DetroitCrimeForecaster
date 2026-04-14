@@ -5,10 +5,11 @@ resources:
       libraries:
         - glob:
             include: /Workspace/Users/${workspace.current_user.userName}/DetroitCrimeForecaster/pipeline/transformations/**
-      schema: ${resources.schemas.detroit_schema.name}
+      schema: detroit_911
       photon: true
-      catalog: ${resources.schemas.detroit_schema.catalog_name}
+      catalog: mk_fiddles
       serverless: true
       tags:
         project: detroit-911
+        RemoveAfter: "2027-04-14"
       root_path: /Workspace/Users/${workspace.current_user.userName}/DetroitCrimeForecaster/pipeline

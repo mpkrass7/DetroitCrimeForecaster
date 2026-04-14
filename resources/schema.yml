@@ -1,10 +1,3 @@
-resources:
-  schemas:
-    detroit_schema:
-      catalog_name: mk_fiddles
-      name: detroit_911
-      grants: 
-        - principal: '${resources.apps.detroit_app.service_principal_client_id}'
-          privileges:
-            - SELECT
-            - CREATE_TABLE
+# Schema is pre-existing and unmanaged by this bundle.
+# catalog: mk_fiddles
+# schema: detroit_911

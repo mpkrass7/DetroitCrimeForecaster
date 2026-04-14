@@ -4,7 +4,10 @@ bundle:
   name: detroit_forecaster
 
 include:
-  - resources/*.yml
+  - resources/engineering_pipeline.yml
+  - resources/job_definition.yml
+  - resources/schema.yml
+  # resources/data.app.yml excluded: workspace OAuth quota exceeded (1000 limit)
 
 targets:
   dev:
@@ -13,13 +16,13 @@ targets:
     # - Any job schedules and triggers are paused by default.
     # See also https://docs.databricks.com/dev-tools/bundles/deployment-modes.html.
     mode: development
-    default: true
     workspace:
       host: https://dbc-ce5f8f27-a018.cloud.databricks.com
     presets:
       name_prefix: ""
   prod:
     mode: production
+    default: true
     workspace:
       host: https://adb-984752964297111.11.azuredatabricks.net
       # We explicitly specify /Workspace/Users/marshall.krassenstein@databricks.com to make sure we only have a single copy.
